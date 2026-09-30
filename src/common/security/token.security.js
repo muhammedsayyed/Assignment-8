@@ -1,8 +1,8 @@
 import jwt from "jsonwebtoken"
 import { ACCESS_ADMIN_TOKEN_SIGNATURE, ACCESS_TOKEN_EXPIRES_IN, ACCESS_USER_TOKEN_SIGNATURE, REFRESH_ADMIN_TOKEN_SIGNATURE, REFRESH_TOKEN_EXPIRES_IN, REFRESH_USER_TOKEN_SIGNATURE } from "../../config.js";
-import { BadException, NotfoundException } from "../exceptions/error.exception.js";
+import { BadException, NotfoundException, UnauthorizedException } from "../exceptions/error.exception.js";
 import { findById } from "../repository/db.repository.js";
-import { UserModel } from "../../DB/model/user.model.js";
+import { RevokedTokenModel, UserModel } from "../../DB/model/user.model.js";
 import { TokenTypeEnum } from "../enum/security.enum.js";
 import { RoleEnum } from "../enum/user.enum.js";
 
@@ -76,6 +76,8 @@ export const decodeToken = async ({
     if (!user) {
         throw NotfoundException("Invalid user")
     }
+    const revokedToken = await RevokedTokenModel.findOne({ token: authorization }).lean().exec()
+    if (revokedToken) throw UnauthorizedException("Token has been revoked")
     return {user,payload}
 }
 

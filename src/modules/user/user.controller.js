@@ -4,6 +4,8 @@ import { profile, rotateToken, update } from './user.service.js';
 import { authentication, authorization } from '../../middleware/authentication.middleware.js';
 import { TokenTypeEnum } from '../../common/enum/security.enum.js';
 import { RoleEnum } from '../../common/enum/user.enum.js';
+import { validation } from '../../middleware/validation.middleware.js';
+import * as validators from '../authentication/authentication.validation.js'
 const router = Router();
 
 // get user profile
@@ -14,9 +16,14 @@ router.get('/', authentication(), async (req, res) => {
 
 
 // update user data
-router.patch("/", authentication(), authorization(RoleEnum.USER), async (req, res) => {
-    const data = await update(req.user, req.body)
+router.patch("/", authentication(), authorization(RoleEnum.USER), validation(validators.updateProfile), async (req, res) => {
+    const data = await update(req.user, req.validate)
     return successResponse({res,data})
+})
+
+router.get("/:id", authentication(), validation(validators.userId, "params"), async (req, res) => {
+    const data = await profile({ _id: req.params.id })
+    return successResponse({ res, data })
 })
 
 

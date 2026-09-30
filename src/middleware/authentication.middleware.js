@@ -1,5 +1,5 @@
 import { TokenTypeEnum } from "../common/enum/security.enum.js"
-import { UnauthorizedException } from "../common/exceptions/error.exception.js"
+import { ForbiddenException, UnauthorizedException } from "../common/exceptions/error.exception.js"
 import { decodeToken } from "../common/security/token.security.js"
 
 // check if user is logged in by verifying the token
@@ -12,6 +12,7 @@ export const authentication = (tokenType = TokenTypeEnum.ACCESS) => {
     const { user , payload } = await decodeToken({ authorization , tokenType })
     req.user = user
     req.payload = payload
+    req.token = authorization
     next()
     }
 }
@@ -28,4 +29,3 @@ export const authorization = (accessRole) => {
         next()
     }
 }
-

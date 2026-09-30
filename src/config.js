@@ -23,3 +23,6 @@ export const REFRESH_ADMIN_TOKEN_SIGNATURE = process.env.REFRESH_ADMIN_TOKEN_SIG
 export const REFRESH_USER_TOKEN_SIGNATURE = process.env.REFRESH_USER_TOKEN_SIGNATURE
 export const REFRESH_TOKEN_EXPIRES_IN = parseInt(process.env.REFRESH_TOKEN_EXPIRES_IN ?? "31536000")
 
+// redis config
+export const REDIS_URL = process.env.REDIS_URL ?? "redis://localhost:6379"
+export const CACHE_TTL = parseInt(process.env.CACHE_TTL ?? "300")

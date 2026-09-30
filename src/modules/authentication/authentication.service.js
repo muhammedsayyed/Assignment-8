@@ -1,10 +1,10 @@
-import { BadException, ConflictException, NotfoundException } from "../../common/exceptions/error.exception.js"
+import { ConflictException, NotfoundException } from "../../common/exceptions/error.exception.js"
 import { createOne, findOne } from "../../common/repository/index.js"
-import { decryption, encryption } from "../../common/security/encryption.security.js"
+import { encryption } from "../../common/security/encryption.security.js"
 import { hash , compare } from "../../common/security/hash.security.js"
 import { UserModel } from "../../DB/model/user.model.js"
-import bcrypt from "bcrypt"
 import { createLoginCredentials } from "../../common/security/token.security.js"
+import { RevokedTokenModel } from "../../DB/model/user.model.js"
 
 
 // register a new user
@@ -29,10 +29,13 @@ export const login = async ({ email, password },issuer) => {
         filter: { email }
     })
     if (!account) throw NotfoundException("Invalid email or password")
-    const match = await bcrypt.compare(password, account.password)
+    const match = await compare(password, account.password)
     if (!match) throw NotfoundException("Invalid email or password")
         return await createLoginCredentials({user:account , issuer}) 
 }
 
-
-
+// logout from current session
+export const logout = async (user, token) => {
+    if (!token) throw NotfoundException("Invalid token")
+    return await RevokedTokenModel.create({ token, user: user._id })
+}

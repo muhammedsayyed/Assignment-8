@@ -58,3 +58,18 @@ userSchema.virtual("username").set(function (value) {
 });
 
 export const UserModel = mongoose.models.User || mongoose.model("User", userSchema);
+
+const revokedTokenSchema = new mongoose.Schema({
+    token: { type: String, required: true, unique: true },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }
+}, { timestamps: true });
+
+export const RevokedTokenModel = mongoose.models.RevokedToken || mongoose.model("RevokedToken", revokedTokenSchema);
+
+const messageSchema = new mongoose.Schema({
+    content: { type: String, required: true, trim: true, minLength: 1, maxLength: 1000 },
+    receiver: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    sender: { type: mongoose.Schema.Types.ObjectId, ref: "User" }
+}, { timestamps: true });
+
+export const MessageModel = mongoose.models.Message || mongoose.model("Message", messageSchema);

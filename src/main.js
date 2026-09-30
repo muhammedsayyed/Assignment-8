@@ -3,10 +3,12 @@ import { authenticationController, messageController, userController } from './m
 import { globalErrorHandler } from './middleware/index.js'
 import { PORT } from './config.js'
 import { bootstrapDB } from './DB/connection.db.js'
+import { bootstrapRedis } from './DB/redis.connection.js'
 
 // create express app and connect to database
 const app = express()
 bootstrapDB(app, PORT)
+bootstrapRedis()
 app.use(express.json())
 
 // home route
@@ -22,4 +24,3 @@ app.all('{/*dummy}', (req, res) => {return res.status(404).json({message: 'Route
 
 // global error handler
 app.use(globalErrorHandler)
-
