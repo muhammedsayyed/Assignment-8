@@ -4,7 +4,8 @@ import { encryption } from "../../common/security/encryption.security.js"
 import { hash , compare } from "../../common/security/hash.security.js"
 import { UserModel } from "../../DB/model/user.model.js"
 import { createLoginCredentials } from "../../common/security/token.security.js"
-import { RevokedTokenModel } from "../../DB/model/user.model.js"
+import { verifyToken } from "../../common/security/token.security.js"
+import { revokeToken } from "../../common/utils/cache.utils.js"
 
 
 // register a new user
@@ -35,7 +36,10 @@ export const login = async ({ email, password },issuer) => {
 }
 
 // logout from current session
-export const logout = async (user, token) => {
+export const logout = async (token) => {
     if (!token) throw NotfoundException("Invalid token")
-    return await RevokedTokenModel.create({ token, user: user._id })
+    const payload = await verifyToken({ token })
+    if (!payload.exp) throw NotfoundException("Token expiration is missing")
+    await revokeToken(token, payload.exp)
+    return { loggedOut: true }
 }

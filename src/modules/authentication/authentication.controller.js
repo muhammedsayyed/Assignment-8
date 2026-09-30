@@ -13,8 +13,8 @@ router.post("/signup", validation(validators.signup) ,async (req, res, next) => 
 })
 
 router.post("/logout", authentication(), async (req, res) => {
-    const data = await logout(req.user, req.token)
-    return successResponse({ res, data })
+    const data = await logout(req.token)
+    return successResponse({ res, data, message: "Logged out successfully" })
 })
 
 // login route
