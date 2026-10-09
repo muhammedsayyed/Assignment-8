@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
-import { GenderEnum, RoleEnum } from "../../common/enum/index.js";
+import { GenderEnum, ProviderEnum, RoleEnum, TwoStepVerificationEnum } from "../../common/enum/index.js";
 
-// define user schema
 const userSchema = new mongoose.Schema({
     firstName: {
         type: String,
@@ -22,13 +21,26 @@ const userSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: true,
+        required: function () {
+            return this.provider === ProviderEnum.SYSTEM;
+        },
     },
-    phone:String,
+    phone: String,
     DOB: Date,
-    confirmEmail:Date,
+    confirmEmail: Date,
     image: String,
     coverImage: [String],
+    changeCredentialsTime: Date,
+    twoStepVerification: {
+        type: Number,
+        enum: Object.values(TwoStepVerificationEnum),
+        default: TwoStepVerificationEnum.DISABLED
+    },
+    provider: {
+        type: Number,
+        enum: Object.values(ProviderEnum),
+        default: ProviderEnum.SYSTEM
+    },
     gender: {
         type: Number,
         enum: Object.values(GenderEnum),
@@ -39,7 +51,6 @@ const userSchema = new mongoose.Schema({
         default: RoleEnum.USER,
         enum: Object.values(RoleEnum)
     },
-
 }, {
     timestamps: true,
     autoIndex: true,
@@ -49,7 +60,6 @@ const userSchema = new mongoose.Schema({
     strictQuery: true
 });
 
-// virtual field to split username into firstName and lastName
 userSchema.virtual("username").set(function (value) {
     const [firstName, lastName] = value?.split(" ") || [];
     this.set({ firstName, lastName });

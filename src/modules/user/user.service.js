@@ -1,42 +1,66 @@
-import { findByIdAndUpdate } from "../../common/repository/db.repository.js"
-import { UserModel } from "../../DB/model/user.model.js"
-import { createLoginCredentials, createToken, verifyToken } from "../../common/security/token.security.js"
-import { ConflictException } from "../../common/exceptions/error.exception.js"
-import { ACCESS_TOKEN_EXPIRES_IN } from "../../config.js"
-import { deleteCache, getCache, setCache } from "../../common/utils/cache.utils.js"
-import { findById } from "../../common/repository/db.repository.js"
+import { findById, findByIdAndUpdate } from "../../common/repository/db.repository.js";
+import { UserModel } from "../../DB/model/user.model.js";
+import { createLoginCredentials, createRevokeToken, userBaseRevokeTokenKey } from "../../common/security/token.security.js";
+import { encryption } from "../../common/security/encryption.security.js";
+import { ConflictException } from "../../common/exceptions/error.exception.js";
+import { ACCESS_TOKEN_EXPIRES_IN } from "../../config.js";
+import { deleteCache, getCache, setCache } from "../../common/utils/cache.utils.js";
+import { LogoutEnum } from "../../common/enum/security.enum.js";
+import { del, keys } from "../../common/services/index.js";
 
-// return user profile data
 export const profile = async (user) => {
-    const key = `profile:${user._id}`
-    const cachedProfile = await getCache(key)
-    if (cachedProfile) return cachedProfile
-    const account = await findById({ model: UserModel, id: user._id, options: { lean: true } })
-    if (!account) return account
-    await setCache(key, account)
-    return account
-}
+    const userId = user._id || user;
+    const key = `profile:${userId}`;
+    const cachedProfile = await getCache(key);
+    if (cachedProfile) return cachedProfile;
 
+    const account = await findById({ model: UserModel, id: userId, options: { lean: true } });
+    if (!account) return account;
 
+    // Cache user profile
+    await setCache(key, account);
+    return account;
+};
 
-// update user info by id
 export const update = async (user, data) => {
+    const updateData = { ...data };
+    if (updateData.phone && !updateData.phone.includes(":::")) {
+        updateData.phone = await encryption(updateData.phone);
+    }
+
     const account = await findByIdAndUpdate({
         model: UserModel,
         id: user._id,
-        update: data
-    })
-    await deleteCache(`profile:${user._id}`)
-    return account
-}
+        update: updateData
+    });
+    await deleteCache(`profile:${user._id}`);
+    return account;
+};
 
-
-// create new tokens if the access token is about to expire
 export const rotateToken = async (payload, user, issuer) => {
-    const accessExpiresIn = (payload.iat + ACCESS_TOKEN_EXPIRES_IN) * 1000
-    const currentTime = Date.now() + (30 * 60000)
+    const accessExpiresIn = (payload.iat + ACCESS_TOKEN_EXPIRES_IN) * 1000;
+    const currentTime = Date.now() + (30 * 60000);
     if (currentTime < accessExpiresIn) {
-        throw ConflictException("Sorry we cannot create new login credentials while current access token still within valid time range")
+        throw ConflictException("Sorry we cannot create new login credentials while current access token still within valid time range");
     }
-    return await createLoginCredentials({user,issuer}) 
-}
+    const data = await createLoginCredentials({ user, issuer });
+    await createRevokeToken({ payload, user });
+    return data;
+};
+
+export const logout = async (payload, user, { action = LogoutEnum.DEVICE } = {}) => {
+    switch (action) {
+        case LogoutEnum.ALL:
+            user.changeCredentialsTime = new Date();
+            await user.save();
+            const matchedKeys = await keys({ prefix: userBaseRevokeTokenKey({ userId: payload.sub }) });
+            if (matchedKeys?.length) {
+                await del({ key: matchedKeys });
+            }
+            break;
+        default:
+            await createRevokeToken({ payload, user });
+            break;
+    }
+    return { loggedOut: true };
+};

@@ -1,26 +1,20 @@
-
-// create multiple documents
 export const create = async ({
     model,
     data = [{}],
     options = { validateBeforeSave: true }
 } = {}) => {
+    return await model.create(data, options);
+};
 
-    return await model.create(data, options)
-}
-
-
-// create a single document
 export const createOne = async ({
     model,
     data = {},
     options = { validateBeforeSave: true }
 } = {}) => {
     const [doc] = await create({ model, data: [data], options });
-    return doc
-}
+    return doc;
+};
 
-// find one document by filter
 export const findOne = async ({
     model,
     filter = {},
@@ -37,9 +31,8 @@ export const findOne = async ({
         doc.lean();
     }
     return await doc.exec();
-}
+};
 
-// find one document by id
 export const findById = async ({
     id,
     options = {},
@@ -56,9 +49,8 @@ export const findById = async ({
         doc.lean(options.lean);
     }
     return await doc.exec();
-}
+};
 
-// find multiple documents with options
 export const find = async ({
     filter = {},
     options = {},
@@ -84,17 +76,15 @@ export const find = async ({
         doc.lean(options.lean);
     }
     return await doc.exec();
-}
+};
 
-// insert many documents at once
 export const insertMany = async ({
     data,
     model
 } = {}) => {
-    return (await model.insertMany(data))
-}
+    return await model.insertMany(data);
+};
 
-// update one document
 export const updateOne = async ({
     filter,
     update,
@@ -106,9 +96,8 @@ export const updateOne = async ({
         { ...update, $inc: { __v: 1 } },
         options
     );
-}
+};
 
-// find and update one document
 export const findOneAndUpdate = async ({
     filter,
     update,
@@ -119,14 +108,13 @@ export const findOneAndUpdate = async ({
         filter || {},
         { ...update, $inc: { __v: 1 } },
         {
-        new: true,
-        runValidators: true,
-        ...options,
+            new: true,
+            runValidators: true,
+            ...options,
         }
     );
-}
+};
 
-// find by id and update
 export const findByIdAndUpdate = async ({
     id,
     update,
@@ -138,25 +126,22 @@ export const findByIdAndUpdate = async ({
         { ...update, $inc: { __v: 1 } },
         options
     );
-}
+};
 
-// delete one document
 export const deleteOne = async ({
     filter,
     model
 } = {}) => {
     return await model.deleteOne(filter || {});
-}
+};
 
-// delete many documents
 export const deleteMany = async ({
     filter,
     model
 } = {}) => {
     return await model.deleteMany(filter || {});
-}
+};
 
-// find and delete one document
 export const findOneAndDelete = async ({
     filter,
     model
@@ -164,4 +149,4 @@ export const findOneAndDelete = async ({
     return await model.findOneAndDelete(
         filter || {},
     );
-}
+};
