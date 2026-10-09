@@ -24,6 +24,7 @@ export const profile = async (user) => {
 
 export const update = async (user, data) => {
     const updateData = { ...data };
+    // encrypt phone if updated
     if (updateData.phone && !updateData.phone.includes(":::")) {
         updateData.phone = await encryption(updateData.phone);
     }
@@ -33,11 +34,13 @@ export const update = async (user, data) => {
         id: user._id,
         update: updateData
     });
+    // clear cached profile after update
     await deleteCache(`profile:${user._id}`);
     return account;
 };
 
 export const rotateToken = async (payload, user, issuer) => {
+    // only allow rotation if access token is near expiry
     const accessExpiresIn = (payload.iat + ACCESS_TOKEN_EXPIRES_IN) * 1000;
     const currentTime = Date.now() + (30 * 60000);
     if (currentTime < accessExpiresIn) {
@@ -51,6 +54,7 @@ export const rotateToken = async (payload, user, issuer) => {
 export const logout = async (payload, user, { action = LogoutEnum.DEVICE } = {}) => {
     switch (action) {
         case LogoutEnum.ALL:
+            // invalidate all sessions by updating credentials time
             user.changeCredentialsTime = new Date();
             await user.save();
             const matchedKeys = await keys({ prefix: userBaseRevokeTokenKey({ userId: payload.sub }) });

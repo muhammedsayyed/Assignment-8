@@ -40,6 +40,7 @@ export const verifyToken = async ({
     return jwt.verify(token, secret);
 };
 
+// get jwt secret based on user role
 const getTokenSignatures = async ({ role = RoleEnum.USER } = {}) => {
     let signatures;
     switch (role) {
@@ -72,6 +73,7 @@ export const decodeToken = async ({
         throw BadException("missing token payload");
     }
 
+    // check if this token was revoked in redis
     if (payload.jti && (await exist({ key: userRevokeTokenKey({ userId: payload.sub, jti: payload.jti }) }))) {
         throw UnauthorizedException("expired login credentials");
     }
@@ -88,6 +90,7 @@ export const decodeToken = async ({
         throw NotfoundException("Invalid user");
     }
 
+    // check if password was changed after token was issued
     if ((user.changeCredentialsTime?.getTime() ?? 0) > payload.iat * 1000) {
         throw UnauthorizedException("Expired login credentials");
     }
@@ -95,6 +98,7 @@ export const decodeToken = async ({
     return { user, payload };
 };
 
+// create access and refresh token pair with the same jti
 export const createLoginCredentials = async ({
     user,
     issuer,
@@ -130,6 +134,7 @@ export const createLoginCredentials = async ({
     return { access_token, refresh_token };
 };
 
+// blacklist token in redis until refresh token expires
 export const createRevokeToken = async ({ payload, user }) => {
     const currentTime = Math.ceil(Date.now() / 1000);
     const refreshExpiresAt = payload.iat + REFRESH_TOKEN_EXPIRES_IN;

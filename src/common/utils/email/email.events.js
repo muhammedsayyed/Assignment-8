@@ -4,6 +4,7 @@ import { verifyEmailTemplate } from "./email.template.js";
 
 export const emailEvent = new EventEmitter();
 
+// send email asynchronously in the background
 emailEvent.on("sendEmail", async ({ recipients, subject, data }) => {
     try {
         await sendEmail({

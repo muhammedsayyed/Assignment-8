@@ -16,6 +16,7 @@ export const localFileUpload = ({ maxFileSize = 5 } = {}) => {
 };
 
 export const processFile = async ({ customPath = "general", file, validation = [] }) => {
+    // check magic bytes from buffer to verify real file type
     const result = await fileTypeFromBuffer(file.buffer);
     if (!result || !validation.includes(result.mime)) {
         throw BadException("Invalid file formats");

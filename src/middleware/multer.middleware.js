@@ -9,6 +9,7 @@ export const uploadMiddleware = ({ isRequired = true, multerMiddleware, customPa
                 return;
             }
             try {
+                // validate file presence and check buffer type
                 if (isRequired && (
                     !req.file &&
                     !(Array.isArray(req.files) && req.files.length) &&

@@ -2,6 +2,7 @@ import { TokenTypeEnum } from "../common/enum/security.enum.js";
 import { ForbiddenException, UnauthorizedException } from "../common/exceptions/error.exception.js";
 import { decodeToken } from "../common/security/token.security.js";
 
+// verify jwt token and attach user to request
 export const authentication = (tokenType = TokenTypeEnum.ACCESS) => {
     return async (req, res, next) => {
         const { authorization } = req.headers;
@@ -16,6 +17,7 @@ export const authentication = (tokenType = TokenTypeEnum.ACCESS) => {
     };
 };
 
+// check user role permissions
 export const authorization = (accessRole) => {
     return async (req, res, next) => {
         if (req.user.role < accessRole) {

@@ -19,6 +19,7 @@ const userSchema = new mongoose.Schema({
         required: true,
         unique: true,
     },
+    // password is only required for local email signup (not google)
     password: {
         type: String,
         required: function () {
@@ -60,6 +61,7 @@ const userSchema = new mongoose.Schema({
     strictQuery: true
 });
 
+// virtual to split/join full name
 userSchema.virtual("username").set(function (value) {
     const [firstName, lastName] = value?.split(" ") || [];
     this.set({ firstName, lastName });

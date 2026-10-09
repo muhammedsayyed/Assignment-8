@@ -17,6 +17,7 @@ import { revokeToken } from "../../common/utils/cache.utils.js";
 
 const client = new OAuth2Client();
 
+// verify google id token with google oauth client
 async function verifyGoogleAccount(idToken) {
     const ticket = await client.verifyIdToken({
         idToken,
@@ -84,6 +85,7 @@ export const signup = async ({ email, password, phone, username }) => {
         options: { select: "email" }
     });
     if (duplicatedAccount) throw ConflictException("Email already exists");
+    // hash password and encrypt phone before saving
     const account = await createOne({
         model: UserModel,
         data: {
@@ -98,6 +100,7 @@ export const signup = async ({ email, password, phone, username }) => {
     return account;
 };
 
+// verify otp and mark email as confirmed
 export const confirmEmail = async ({ otp, email }) => {
     const account = await findOne({
         model: UserModel,
@@ -153,6 +156,7 @@ export const verifyForgotPassword = async ({ otp, email }) => {
 export const resetPassword = async ({ otp, email, password }) => {
     const account = await verifyForgotPassword({ otp, email });
     account.password = await hash(password);
+    // update credentials time to invalidate previous tokens
     account.changeCredentialsTime = new Date();
     await account.save();
     const result = await Promise.all([
@@ -194,6 +198,7 @@ export const login = async ({ email, password }, issuer) => {
 
     await del({ key: loginTrailsKey });
 
+    // if 2fa is enabled, send otp and require 2fa confirmation
     if (account.twoStepVerification === TwoStepVerificationEnum.ENABLED) {
         await sendEmailOtp({ email: account.email, subject: EmailSubjectEnum.TWO_STEP_VERIFICATION });
         return { twoStepVerification: true, message: "Verification code sent to your email" };
@@ -276,6 +281,7 @@ export const logout = async (tokenOrPayload, user, { action = LogoutEnum.DEVICE 
     const payload = tokenOrPayload;
     switch (action) {
         case LogoutEnum.ALL:
+            // update credentials time to invalidate all active tokens
             if (user) {
                 user.changeCredentialsTime = new Date();
                 await user.save();
