@@ -17,3 +17,9 @@ export const TwoStepVerificationEnum = {
     DISABLED: 0,
     ENABLED: 1
 }
+
+export const IdentityRequestStatusEnum = {
+    PENDING: 0,
+    ACCEPTED: 1,
+    REJECTED: 2
+}

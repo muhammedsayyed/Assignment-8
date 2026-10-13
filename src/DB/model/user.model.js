@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { GenderEnum, ProviderEnum, RoleEnum, TwoStepVerificationEnum } from "../../common/enum/index.js";
+import { GenderEnum, IdentityRequestStatusEnum, ProviderEnum, RoleEnum, TwoStepVerificationEnum } from "../../common/enum/index.js";
 
 const userSchema = new mongoose.Schema({
     firstName: {
@@ -85,3 +85,37 @@ const messageSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 export const MessageModel = mongoose.models.Message || mongoose.model("Message", messageSchema);
+
+const identityRequestSchema = new mongoose.Schema({
+    message: { type: mongoose.Schema.Types.ObjectId, ref: "Message", required: true },
+    requestedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    sender: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    status: {
+        type: Number,
+        enum: Object.values(IdentityRequestStatusEnum),
+        default: IdentityRequestStatusEnum.PENDING
+    }
+}, { timestamps: true, toObject: { virtuals: true }, toJSON: { virtuals: true } });
+
+// one pending/accepted request per message
+identityRequestSchema.index({ message: 1 }, { unique: true });
+
+export const IdentityRequestModel = mongoose.models.IdentityRequest || mongoose.model("IdentityRequest", identityRequestSchema);
+
+const conversationSchema = new mongoose.Schema({
+    participants: [{ type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }],
+    identityRequest: { type: mongoose.Schema.Types.ObjectId, ref: "IdentityRequest", required: true, unique: true },
+    message: { type: mongoose.Schema.Types.ObjectId, ref: "Message" }
+}, { timestamps: true, toObject: { virtuals: true }, toJSON: { virtuals: true } });
+
+export const ConversationModel = mongoose.models.Conversation || mongoose.model("Conversation", conversationSchema);
+
+const conversationMessageSchema = new mongoose.Schema({
+    conversation: { type: mongoose.Schema.Types.ObjectId, ref: "Conversation", required: true },
+    sender: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    content: { type: String, required: true, trim: true, minLength: 1, maxLength: 1000 }
+}, { timestamps: true });
+
+conversationMessageSchema.index({ conversation: 1, createdAt: 1 });
+
+export const ConversationMessageModel = mongoose.models.ConversationMessage || mongoose.model("ConversationMessage", conversationMessageSchema);

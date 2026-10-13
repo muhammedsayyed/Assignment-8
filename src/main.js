@@ -1,6 +1,6 @@
 import express from 'express'
 import cors from 'cors'
-import { authenticationController, messageController, userController } from './modules/index.js'
+import { authenticationController, conversationController, identityRequestController, messageController, userController } from './modules/index.js'
 import { globalErrorHandler } from './middleware/index.js'
 import { PORT } from './config.js'
 import { bootstrapDB } from './DB/connection.db.js'
@@ -22,6 +22,8 @@ app.get('/', (req, res) => res.status(200).json({ message: 'Hello World!' }))
 app.use("/auth", authenticationController)
 app.use("/message", messageController)
 app.use("/user", userController)
+app.use("/identity-request", identityRequestController)
+app.use("/conversation", conversationController)
 
 app.all('{/*dummy}', (req, res) => { return res.status(404).json({ message: 'Route not found!' }) })
 
