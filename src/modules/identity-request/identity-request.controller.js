@@ -14,6 +14,7 @@ import { createConversation } from '../conversation/conversation.service.js';
 
 const router = Router();
 
+// create identity disclosure request for an anonymous message
 router.post('/', authentication(), validation(validators.createIdentityRequest), async (req, res) => {
     const data = await createIdentityRequest(req.user, req.validate);
     return successResponse({ res, statusCode: 201, data, message: "Identity request created successfully" });
@@ -29,21 +30,25 @@ router.get('/:id', authentication(), validation(validators.identityRequestId, "p
     return successResponse({ res, data });
 });
 
+// update identity request status
 router.patch('/:id', authentication(), validation(validators.identityRequestId, "params"), validation(validators.updateIdentityRequestStatus), async (req, res) => {
     const data = await updateIdentityRequestStatus(req.user, req.params.id, req.validate.status);
     return successResponse({ res, data, message: "Identity request status updated" });
 });
 
+// accept identity request (original sender only)
 router.patch('/:id/accept', authentication(), validation(validators.identityRequestId, "params"), async (req, res) => {
     const data = await updateIdentityRequestStatus(req.user, req.params.id, IdentityRequestStatusEnum.ACCEPTED);
     return successResponse({ res, data, message: "Identity request accepted successfully" });
 });
 
+// reject identity request (original sender only)
 router.patch('/:id/reject', authentication(), validation(validators.identityRequestId, "params"), async (req, res) => {
     const data = await updateIdentityRequestStatus(req.user, req.params.id, IdentityRequestStatusEnum.REJECTED);
     return successResponse({ res, data, message: "Identity request rejected successfully" });
 });
 
+// create conversation directly from accepted identity request id
 router.post('/:id/conversation', authentication(), validation(validators.identityRequestId, "params"), async (req, res) => {
     const data = await createConversation(req.user, { identityRequestId: req.params.id });
     return successResponse({ res, statusCode: 201, data, message: "Conversation created successfully" });

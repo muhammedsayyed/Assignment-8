@@ -27,6 +27,7 @@ export const getMessages = async (user) => {
     });
 
     const messageIds = messages.map(m => m._id);
+    // find accepted identity requests to disclose sender details
     const acceptedRequests = await find({
         model: IdentityRequestModel,
         filter: {
@@ -66,6 +67,7 @@ export const getMessageById = async (user, messageId) => {
     }
 
     if (isReceiver) {
+        // disclose sender only if identity request has been accepted
         const acceptedRequest = await findOne({
             model: IdentityRequestModel,
             filter: { message: message._id, status: IdentityRequestStatusEnum.ACCEPTED },

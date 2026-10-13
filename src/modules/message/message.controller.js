@@ -13,6 +13,7 @@ router.post('/', authentication(), validation(validators.createMessage), async (
     return successResponse({ res, statusCode: 201, data });
 });
 
+// fetch received messages for authenticated user
 router.get('/', authentication(), async (req, res) => {
     const data = await getMessages(req.user);
     return successResponse({ res, data });
@@ -23,6 +24,7 @@ router.get('/:id', authentication(), validation(validators.userId, "params"), as
     return successResponse({ res, data });
 });
 
+// request sender identity disclosure for a specific message
 router.post('/:id/identity-request', authentication(), validation(validators.userId, "params"), async (req, res) => {
     const data = await createIdentityRequest(req.user, { messageId: req.params.id });
     return successResponse({ res, statusCode: 201, data, message: "Identity request created successfully" });

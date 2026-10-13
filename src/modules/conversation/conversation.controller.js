@@ -13,6 +13,7 @@ import {
 
 const router = Router();
 
+// create conversation from an accepted identity request
 router.post('/', authentication(), validation(validators.createConversation), async (req, res) => {
     const data = await createConversation(req.user, req.validate);
     return successResponse({ res, statusCode: 201, data, message: "Conversation created successfully" });
@@ -28,6 +29,7 @@ router.get('/:id', authentication(), validation(validators.conversationId, "para
     return successResponse({ res, data });
 });
 
+// send message to conversation participants
 router.post('/:id/message', authentication(), validation(validators.conversationId, "params"), validation(validators.sendMessage), async (req, res) => {
     const data = await sendConversationMessage(req.user, req.params.id, req.validate);
     return successResponse({ res, statusCode: 201, data, message: "Message sent successfully" });
@@ -38,6 +40,7 @@ router.post('/:id/messages', authentication(), validation(validators.conversatio
     return successResponse({ res, statusCode: 201, data, message: "Message sent successfully" });
 });
 
+// fetch conversation messages in chronological order
 router.get('/:id/message', authentication(), validation(validators.conversationId, "params"), async (req, res) => {
     const data = await getConversationMessages(req.user, req.params.id);
     return successResponse({ res, data });
