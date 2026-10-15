@@ -12,7 +12,7 @@ import * as validators from '../authentication/authentication.validation.js';
 const router = Router();
 
 router.get('/', authentication(), async (req, res) => {
-    const data = await profile(req.user);
+    const data = await profile(req.user, { includePrivate: true });
     return successResponse({ res, data });
 });
 

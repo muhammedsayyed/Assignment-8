@@ -8,8 +8,9 @@ import { OAuth2Client } from 'google-auth-library';
 import { ProviderEnum, TwoStepVerificationEnum } from "../../common/enum/user.enum.js";
 import { EmailSubjectEnum } from "../../common/enum/email.enum.js";
 import { LogoutEnum } from "../../common/enum/security.enum.js";
-import { WEB_CLIENT_IDS } from "../../config.js";
-import { emailEvent } from "../../common/utils/email/email.events.js";
+import { APP_EMAIL, APP_PASSWORD, WEB_CLIENT_IDS } from "../../config.js";
+import { sendEmail } from "../../common/utils/email/send.email.js";
+import { verifyEmailTemplate } from "../../common/utils/email/email.template.js";
 import { createOtp } from "../../common/utils/otp.js";
 import { del, expire, get, incrBy, keys, set, ttl } from "../../common/services/cache.service.js";
 import { userEmailKey, userEmailTrailsKey } from "../../common/utils/email/send.email.js";
@@ -65,6 +66,32 @@ const sendEmailOtp = async ({ email, subject, expiresIn = 120, maxTrails = 3, bl
         throw TooManyRequestsException(`Maximum resend attempts reached`);
     }
     const code = createOtp();
+    // Keep local development usable when SMTP credentials are not configured.
+    if (process.env.NODE_ENV === "development" && (!APP_EMAIL || !APP_PASSWORD)) {
+        await set({
+            key: userEmailKey({ email, subject }),
+            value: await hash(code.toString()),
+            ttl: expiresIn
+        });
+        const currentTrails = await incrBy({ key: userEmailTrailsKey({ email, subject }) });
+        if (currentTrails === maxTrails) {
+            await expire({ key: userEmailTrailsKey({ email, subject }), ttl: blockInSeconds });
+        }
+        console.info(`[DEV OTP] ${subject} for ${email}: ${code}`);
+        return;
+    }
+
+    try {
+        await sendEmail({
+            to: email,
+            subject: `${APP_NAME} - ${title ?? subject.replaceAll("_", " ")}`,
+            html: verifyEmailTemplate({ code, subject, title })
+        });
+    } catch (error) {
+        console.error("Verification email delivery failed:", error);
+        throw BadException("Could not send the verification email. Check APP_EMAIL and APP_PASSWORD in .env.development");
+    }
+
     await set({
         key: userEmailKey({ email, subject }),
         value: await hash(code.toString()),
@@ -74,8 +101,6 @@ const sendEmailOtp = async ({ email, subject, expiresIn = 120, maxTrails = 3, bl
     if (currentTrails === maxTrails) {
         await expire({ key: userEmailTrailsKey({ email, subject }), ttl: blockInSeconds });
     }
-    // Send verification code
-    emailEvent.emit("sendEmail", { recipients: { to: email }, subject, data: { code, title: title ?? subject } });
 };
 
 export const signup = async ({ email, password, phone, username }) => {

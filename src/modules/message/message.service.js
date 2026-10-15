@@ -1,14 +1,18 @@
-import { IdentityRequestModel, MessageModel, UserModel } from "../../DB/model/user.model.js";
+import { ConversationModel, IdentityRequestModel, MessageModel, UserModel } from "../../DB/model/user.model.js";
 import { find, findById, findOne } from "../../common/repository/db.repository.js";
-import { ForbiddenException, NotfoundException } from "../../common/exceptions/error.exception.js";
+import { ForbiddenException, NotfoundException, ConflictException } from "../../common/exceptions/error.exception.js";
 import { IdentityRequestStatusEnum } from "../../common/enum/user.enum.js";
 
-export const createMessage = async (user, data) => {
+export const createMessage = async (user, data, files = []) => {
     // check receiver exists before creating message
     const receiver = await findById({ model: UserModel, id: data.receiver });
     if (!receiver) throw NotfoundException("Receiver not found");
 
-    const message = await MessageModel.create({ ...data, sender: user._id });
+    const message = await MessageModel.create({
+        ...data,
+        sender: user?._id,
+        attachments: files.map(file => file.finalPath)
+    });
 
     // preserve sender internally while hiding it in the anonymous message response
     const messageObj = message.toObject ? message.toObject() : { ...message._doc };
@@ -16,10 +20,16 @@ export const createMessage = async (user, data) => {
     return messageObj;
 };
 
-export const getMessages = async (user) => {
+export const getMessages = async (user, type = "received") => {
+    const userId = user._id;
+    const filter = type === "sent"
+        ? { sender: userId }
+        : type === "all"
+            ? { $or: [{ receiver: userId }, { sender: userId }] }
+            : { receiver: userId };
     const messages = await find({
         model: MessageModel,
-        filter: { receiver: user._id },
+        filter,
         options: {
             sort: { createdAt: -1 },
             lean: true
@@ -50,9 +60,34 @@ export const getMessages = async (user) => {
         if (acceptedSender) {
             return { ...m, sender: acceptedSender, isAnonymous: false };
         }
+        const isSender = m.sender?.toString() === userId.toString();
+        if (isSender) return { ...m, isAnonymous: false };
         const { sender, ...rest } = m;
-        return { ...rest, isAnonymous: true };
+        return { ...rest, isAnonymous: true, canRequestIdentity: Boolean(sender) };
     });
+};
+
+export const markMessageAsRead = async (user, messageId) => {
+    const message = await MessageModel.findOneAndUpdate(
+        { _id: messageId, receiver: user._id },
+        { $set: { isRead: true } },
+        { new: true, runValidators: true }
+    ).lean();
+    if (!message) throw NotfoundException("Message not found");
+    const { sender, ...safeMessage } = message;
+    return safeMessage;
+};
+
+export const deleteMessage = async (user, messageId) => {
+    const message = await MessageModel.findOne({ _id: messageId, receiver: user._id });
+    if (!message) throw NotfoundException("Message not found");
+
+    const linkedConversation = await ConversationModel.findOne({ message: message._id }).select("_id").lean();
+    if (linkedConversation) throw ConflictException("This message is linked to a conversation and cannot be deleted");
+
+    await IdentityRequestModel.deleteMany({ message: message._id });
+    await message.deleteOne();
+    return { deleted: true };
 };
 
 export const getMessageById = async (user, messageId) => {

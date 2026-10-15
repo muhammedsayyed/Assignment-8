@@ -17,6 +17,18 @@ export const authentication = (tokenType = TokenTypeEnum.ACCESS) => {
     };
 };
 
+// Attach the current user when a valid bearer token is supplied, while allowing guests.
+export const optionalAuthentication = async (req, res, next) => {
+    const { authorization } = req.headers;
+    if (!authorization) return next();
+
+    const { user, payload } = await decodeToken({ authorization, tokenType: TokenTypeEnum.ACCESS });
+    req.user = user;
+    req.payload = payload;
+    req.token = authorization;
+    next();
+};
+
 // check user role permissions
 export const authorization = (accessRole) => {
     return async (req, res, next) => {

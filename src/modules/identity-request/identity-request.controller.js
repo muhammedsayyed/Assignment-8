@@ -6,6 +6,8 @@ import * as validators from './identity-request.validation.js';
 import {
     createIdentityRequest,
     getIdentityRequests,
+    getSentIdentityRequests,
+    getReceivedIdentityRequests,
     getIdentityRequestById,
     updateIdentityRequestStatus
 } from './identity-request.service.js';
@@ -18,6 +20,16 @@ const router = Router();
 router.post('/', authentication(), validation(validators.createIdentityRequest), async (req, res) => {
     const data = await createIdentityRequest(req.user, req.validate);
     return successResponse({ res, statusCode: 201, data, message: "Identity request created successfully" });
+});
+
+router.get('/sent', authentication(), async (req, res) => {
+    const data = await getSentIdentityRequests(req.user);
+    return successResponse({ res, data });
+});
+
+router.get('/received', authentication(), async (req, res) => {
+    const data = await getReceivedIdentityRequests(req.user);
+    return successResponse({ res, data });
 });
 
 router.get('/', authentication(), async (req, res) => {

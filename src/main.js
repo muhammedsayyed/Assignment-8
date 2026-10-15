@@ -1,7 +1,8 @@
 import express from 'express'
 import cors from 'cors'
+import { resolve } from 'path'
 import { authenticationController, conversationController, identityRequestController, messageController, userController } from './modules/index.js'
-import { globalErrorHandler } from './middleware/index.js'
+import { globalErrorHandler, requestMiddleware } from './middleware/index.js'
 import { PORT } from './config.js'
 import { bootstrapDB } from './DB/connection.db.js'
 import { bootstrapRedis } from './DB/redis.connection.js'
@@ -11,10 +12,11 @@ await bootstrapDB(app, PORT)
 await bootstrapRedis()
 
 // middleware
-app.use(cors(), express.json())
+app.use(cors(), express.json(), requestMiddleware)
 
 // serve uploaded assets
-app.use('/assets', express.static('./assets'))
+app.use('/assets', express.static(resolve('assets')))
+app.use('/app', express.static(resolve('frontend/dist')))
 
 app.get('/', (req, res) => res.status(200).json({ message: 'Hello World!' }))
 

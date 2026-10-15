@@ -17,8 +17,14 @@ export const login = (lang) => {
 login.safeParse = (data) => loginSchema.safeParse(data);
 login.parse = (data) => loginSchema.parse(data);
 
+const signupUsername = z.string().trim().min(5).max(51).refine((name) => {
+    const [firstName, ...lastNameParts] = name.split(/\s+/);
+    const lastName = lastNameParts.join(" ");
+    return firstName.length >= 2 && firstName.length <= 25 && lastName.length >= 2 && lastName.length <= 25;
+}, { message: "Please enter both your first and last name" });
+
 export const signupSchema = loginSchema.extend({
-    username: z.string().min(2),
+    username: signupUsername,
     phone: generalValidationFields.phone,
     confirmPassword: generalValidationFields.password,
     gender: generalValidationFields.gender.optional(),
@@ -29,7 +35,7 @@ export const signupSchema = loginSchema.extend({
 export const signup = (lang) => {
     return z.object({
         body: loginSchema.extend({
-            username: generalValidationFields.username(lang),
+            username: signupUsername,
             phone: generalValidationFields.phone,
             confirmPassword: generalValidationFields.password,
             gender: generalValidationFields.gender.optional(),

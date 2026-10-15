@@ -8,7 +8,8 @@ import {
     getConversations,
     getConversationById,
     sendConversationMessage,
-    getConversationMessages
+    getConversationMessages,
+    deleteConversation
 } from './conversation.service.js';
 
 const router = Router();
@@ -27,6 +28,11 @@ router.get('/', authentication(), async (req, res) => {
 router.get('/:id', authentication(), validation(validators.conversationId, "params"), async (req, res) => {
     const data = await getConversationById(req.user, req.params.id);
     return successResponse({ res, data });
+});
+
+router.delete('/:id', authentication(), validation(validators.conversationId, "params"), async (req, res) => {
+    const data = await deleteConversation(req.user, req.params.id);
+    return successResponse({ res, data, message: "Conversation deleted successfully" });
 });
 
 // send message to conversation participants

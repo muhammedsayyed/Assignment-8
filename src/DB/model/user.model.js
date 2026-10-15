@@ -81,7 +81,9 @@ export const RevokedTokenModel = mongoose.models.RevokedToken || mongoose.model(
 const messageSchema = new mongoose.Schema({
     content: { type: String, required: true, trim: true, minLength: 1, maxLength: 1000 },
     receiver: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    sender: { type: mongoose.Schema.Types.ObjectId, ref: "User" }
+    sender: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    attachments: [{ type: String }],
+    isRead: { type: Boolean, default: false }
 }, { timestamps: true });
 
 export const MessageModel = mongoose.models.Message || mongoose.model("Message", messageSchema);

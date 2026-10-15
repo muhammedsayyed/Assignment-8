@@ -150,3 +150,17 @@ export const getConversationMessages = async (user, conversationId) => {
         }
     });
 };
+
+export const deleteConversation = async (user, conversationId) => {
+    const conversation = await findById({ model: ConversationModel, id: conversationId });
+    if (!conversation) throw NotfoundException("Conversation not found");
+
+    const isParticipant = conversation.participants.some(participant =>
+        participant.toString() === user._id.toString()
+    );
+    if (!isParticipant) throw ForbiddenException("Only participants can delete this conversation");
+
+    await ConversationMessageModel.deleteMany({ conversation: conversation._id });
+    await conversation.deleteOne();
+    return { deleted: true };
+};

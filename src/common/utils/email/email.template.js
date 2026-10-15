@@ -1,117 +1,58 @@
 import { EmailSubjectEnum } from "../../enum/email.enum.js";
 
-export const templates = {
-    [EmailSubjectEnum.CONFIRM_EMAIL]: (data) => {
-        return `
-        <!DOCTYPE html>
-        <html>
-        <head>
-        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
-        <style type="text/css">body{background-color:#f5f5f5;margin:0;}</style>
-        </head>
-        <body style="margin:0;">
-        <table border="0" width="50%" style="margin:auto;padding:30px;background-color:#fff;border:1px solid #D4A84F;border-radius:8px;">
-        <tr><td>
-        <table border="0" width="100%">
-        <tr><td><h1 style="margin:0;color:#111;"><img width="100px" src="https://res.cloudinary.com/ddajommsw/image/upload/v1670702280/Group_35052_icasyu.png"></h1></td><td><p style="text-align:right;"><a href="http://localhost:4200/#/" target="_blank" style="text-decoration:none;color:#D4A84F;font-weight:bold;">View In Website</a></p></td></tr>
-        </table>
-        </td></tr>
-        <tr><td>
-        <table border="0" cellpadding="0" cellspacing="0" style="text-align:center;width:100%;background-color:#111;border-radius:8px;padding:30px 20px;">
-        <tr><td><h2 style="margin:0;color:#D4A84F;font-size:26px;">${data.title}</h2><p style="color:#fff;font-size:16px;margin-top:15px;">Your verification code is</p><div style="display:inline-block;background-color:#D4A84F;color:#111;padding:15px 30px;border-radius:6px;font-size:28px;font-weight:bold;letter-spacing:5px;margin-top:10px;">${data.code}</div></td></tr>
-        </table>
-        </td></tr>
-        <tr><td>
-        <table border="0" cellpadding="0" cellspacing="0" style="text-align:center;width:100%;margin-top:20px;">
-        <tr><td><h3 style="margin-top:10px;color:#111;">Stay in touch</h3></td></tr>
-        <tr><td><div style="margin-top:20px;">
-        <a href="http://www.facebook.com" style="text-decoration:none;"><span style="display:inline-block;padding:10px 9px;background-color:#111;color:#D4A84F;border-radius:50%;margin:0 5px;"><i class="fa fa-facebook"></i></span></a>
-        <a href="http://www.instagram.com" style="text-decoration:none;"><span style="display:inline-block;padding:10px 9px;background-color:#111;color:#D4A84F;border-radius:50%;margin:0 5px;"><i class="fa fa-instagram"></i></span></a>
-        <a href="http://www.twitter.com" style="text-decoration:none;"><span style="display:inline-block;padding:10px 9px;background-color:#111;color:#D4A84F;border-radius:50%;margin:0 5px;"><i class="fa fa-twitter"></i></span></a>
-        </div></td></tr>
-        </table>
-        </td></tr>
-        </table>
-        </body>
-        </html>`;
+const messageBySubject = {
+    [EmailSubjectEnum.CONFIRM_EMAIL]: {
+        title: "Confirm your email",
+        description: "Use this one-time code to finish creating your Saraha Studio account."
     },
-    [EmailSubjectEnum.FORGOT_PASSWORD]: (data) => {
-        return `
-        <!DOCTYPE html>
-            <html>
-            <head>
-            <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
-            <style type="text/css">body{background-color:#f1f5f9;margin:0;}</style>
-            </head>
-            <body style="margin:0;">
-            <table border="0" width="50%" style="margin:auto;padding:30px;background-color:#fff;border:1px solid #38BDF8;border-radius:8px;">
-            <tr><td>
-            <table border="0" width="100%">
-            <tr><td><h1 style="margin:0;color:#172554;"><img width="100px" src="https://res.cloudinary.com/dtgbzmpca/image/upload/v1642367682/fire.png"></h1></td><td><p style="text-align:right;"><a href="http://localhost:4200/#/" target="_blank" style="text-decoration:none;color:#0284C7;font-weight:bold;">View In Website</a></p></td></tr>
-            </table>
-            </td></tr>
-            <tr><td>
-            <table border="0" cellpadding="0" cellspacing="0" style="text-align:center;width:100%;background-color:#172554;border-radius:8px;padding:30px 20px;">
-            <tr><td><h2 style="margin:0;color:#38BDF8;font-size:26px;">${data.title}</h2><p style="color:#fff;font-size:16px;margin-top:15px;">Use the code below to reset your password</p><div style="display:inline-block;background-color:#38BDF8;color:#172554;padding:15px 30px;border-radius:6px;font-size:28px;font-weight:bold;letter-spacing:5px;margin-top:10px;">${data.code}</div></td></tr>
-            </table>
-            </td></tr>
-            <tr><td>
-            <table border="0" cellpadding="0" cellspacing="0" style="text-align:center;width:100%;margin-top:20px;">
-            <tr><td><h3 style="margin-top:10px;color:#172554;">Stay in touch</h3></td></tr>
-            <tr><td><div style="margin-top:20px;">
-            <a href="http://www.facebook.com" style="text-decoration:none;"><span style="display:inline-block;padding:10px 9px;background-color:#172554;color:#38BDF8;border-radius:50%;margin:0 5px;"><i class="fa fa-facebook"></i></span></a>
-            <a href="http://www.instagram.com" style="text-decoration:none;"><span style="display:inline-block;padding:10px 9px;background-color:#172554;color:#38BDF8;border-radius:50%;margin:0 5px;"><i class="fa fa-instagram"></i></span></a>
-            <a href="http://www.twitter.com" style="text-decoration:none;"><span style="display:inline-block;padding:10px 9px;background-color:#172554;color:#38BDF8;border-radius:50%;margin:0 5px;"><i class="fa fa-twitter"></i></span></a>
-            </div></td></tr>
-            </table>
-            </td></tr>
-            </table>
-            </body>
-        </html>`;
+    [EmailSubjectEnum.FORGOT_PASSWORD]: {
+        title: "Reset your password",
+        description: "Use this one-time code to reset your Saraha Studio password."
     },
-    [EmailSubjectEnum.TWO_STEP_VERIFICATION]: (data) => {
-        return `
-        <!DOCTYPE html>
-            <html>
-            <head>
-            <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
-            <style type="text/css">body{background-color:#f5f5f5;margin:0;}</style>
-            </head>
-            <body style="margin:0;font-family: Arial, sans-serif;">
-            <table border="0" width="50%" style="margin:auto;padding:30px;background-color:#fff;border:1px solid #8D5B4C;border-radius:8px;">
-            <tr><td>
-            <table border="0" width="100%">
-            <tr>
-                <td><h1 style="margin:0;color:#111;"><img width="100px" src="https://res.cloudinary.com/ddajommsw/image/upload/v1670702280/Group_35052_icasyu.png"></h1></td>
-                <td><p style="text-align:right;"><a href="http://localhost:4200/#/" target="_blank" style="text-decoration:none;color:#8D5B4C;font-weight:bold;">View In Website</a></p></td>
-            </tr>
-            </table>
-            </td></tr>
-            <tr><td>
-            <table border="0" cellpadding="0" cellspacing="0" style="text-align:center;width:100%;background-color:#2E6F40;border-radius:8px;padding:30px 20px;">
-            <tr><td>
-                <h2 style="margin:0;color:#FFF;font-size:26px;">${data.title || 'Two-Step Verification'}</h2>
-                <p style="color:#F3F4F6;font-size:16px;margin-top:15px;">Your verification code is</p>
-                <div style="display:inline-block;background-color:#8D5B4C;color:#FFF;padding:15px 30px;border-radius:6px;font-size:28px;font-weight:bold;letter-spacing:5px;margin-top:10px;">${data.code}</div>
-            </td></tr>
-            </table>
-            </td></tr>
-            <tr><td>
-            <table border="0" cellpadding="0" cellspacing="0" style="text-align:center;width:100%;margin-top:20px;">
-            <tr><td><h3 style="margin-top:10px;color:#8D5B4C;">Stay in touch</h3></td></tr>
-            <tr><td><div style="margin-top:20px;">
-            <a href="http://www.facebook.com" style="text-decoration:none;"><span style="display:inline-block;padding:10px 9px;background-color:#8D5B4C;color:#FFF;border-radius:50%;margin:0 5px;"><i class="fa fa-facebook"></i></span></a>
-            <a href="http://www.instagram.com" style="text-decoration:none;"><span style="display:inline-block;padding:10px 9px;background-color:#8D5B4C;color:#FFF;border-radius:50%;margin:0 5px;"><i class="fa fa-instagram"></i></span></a>
-            <a href="http://www.twitter.com" style="text-decoration:none;"><span style="display:inline-block;padding:10px 9px;background-color:#8D5B4C;color:#FFF;border-radius:50%;margin:0 5px;"><i class="fa fa-twitter"></i></span></a>
-            </div></td></tr>
-            </table>
-            </td></tr>
-            </table>
-            </body>
-        </html>`;
+    [EmailSubjectEnum.TWO_STEP_VERIFICATION]: {
+        title: "Confirm it is you",
+        description: "Enter this one-time code to finish signing in to Saraha Studio."
     }
 };
 
-export const verifyEmailTemplate = (data) => {
-    return templates[data.subject](data);
+const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+}[character]));
+
+export const verifyEmailTemplate = ({ code, subject, title }) => {
+    const content = messageBySubject[subject] ?? {
+        title: title ?? "Your verification code",
+        description: "Use this one-time code to continue."
+    };
+    const heading = escapeHtml(title ?? content.title);
+    const safeCode = escapeHtml(code);
+
+    return `<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${heading}</title></head>
+<body style="margin:0;padding:32px 12px;background:#f4f6f1;font-family:Arial,Helvetica,sans-serif;color:#26372e;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;margin:0 auto;background:#fffefa;border:1px solid #e2e8df;border-radius:16px;overflow:hidden;">
+    <tr><td style="padding:28px 32px 22px;">
+      <div style="display:inline-block;width:38px;height:38px;line-height:38px;text-align:center;background:#315e4b;color:#fff;border-radius:12px;font-size:21px;font-weight:bold;">s.</div>
+      <span style="margin-left:10px;vertical-align:10px;font-size:18px;font-weight:bold;color:#26372e;">Saraha <span style="font-weight:normal;color:#879186;">Studio</span></span>
+      <p style="margin:28px 0 8px;color:#829080;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;">YOUR SPACE IS WAITING</p>
+      <h1 style="margin:0;font-size:28px;line-height:1.25;color:#26372e;">${heading}</h1>
+      <p style="margin:12px 0 0;color:#687468;font-size:15px;line-height:1.7;">${escapeHtml(content.description)}</p>
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:26px;background:#e9f0e7;border:1px solid #dce7da;border-radius:12px;">
+        <tr><td style="padding:20px;text-align:center;">
+          <p style="margin:0 0 12px;color:#586a5a;font-size:12px;">YOUR VERIFICATION CODE</p>
+          <div style="display:inline-block;padding:14px 22px;background:#315e4b;border-radius:9px;color:#fff;font-size:30px;font-weight:bold;letter-spacing:7px;">${safeCode}</div>
+          <p style="margin:12px 0 0;color:#687468;font-size:12px;">This code expires in 2 minutes. Do not share it with anyone.</p>
+        </td></tr>
+      </table>
+      <p style="margin:24px 0 0;color:#879186;font-size:12px;line-height:1.6;">If you did not request this code, you can safely ignore this email.</p>
+    </td></tr>
+  </table>
+  <p style="margin:16px auto 0;max-width:560px;text-align:center;color:#9aa397;font-size:11px;">PRIVATE BY DEFAULT &nbsp;·&nbsp; MADE FOR GOOD WORDS</p>
+</body>
+</html>`;
 };

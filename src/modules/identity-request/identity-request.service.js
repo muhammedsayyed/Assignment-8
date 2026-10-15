@@ -40,10 +40,16 @@ export const createIdentityRequest = async (user, data) => {
     return response;
 };
 
-export const getIdentityRequests = async (user) => {
+export const getIdentityRequests = async (user, direction = "all") => {
+    const userId = user._id;
+    const filter = direction === "sent"
+        ? { requestedBy: userId }
+        : direction === "received"
+            ? { sender: userId }
+            : { $or: [{ requestedBy: userId }, { sender: userId }] };
     const requests = await find({
         model: IdentityRequestModel,
-        filter: { $or: [{ requestedBy: user._id }, { sender: user._id }] },
+        filter,
         options: {
             populate: [
                 { path: "message", select: "content createdAt" },
@@ -69,6 +75,9 @@ export const getIdentityRequests = async (user) => {
         return req;
     });
 };
+
+export const getSentIdentityRequests = (user) => getIdentityRequests(user, "sent");
+export const getReceivedIdentityRequests = (user) => getIdentityRequests(user, "received");
 
 export const getIdentityRequestById = async (user, requestId) => {
     const request = await findById({
