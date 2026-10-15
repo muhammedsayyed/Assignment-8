@@ -1,8 +1,11 @@
 import { resolve } from 'node:path'
+import { existsSync } from 'node:fs'
 import { config } from 'dotenv'
 
 const NODE_ENV = process.env.NODE_ENV ?? 'development'
-config({ path: resolve(`.env.${NODE_ENV}`) })
+const environmentFile = resolve(`.env.${NODE_ENV}`)
+const defaultEnvironmentFile = resolve('.env')
+config({ path: existsSync(environmentFile) ? environmentFile : defaultEnvironmentFile })
 export const PORT = parseInt(process.env.PORT ?? "9000")
 
 export const DB_URI = process.env.DB_URI

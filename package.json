@@ -4,8 +4,9 @@
   "description": "",
   "main": "./src/main.js",
   "scripts": {
+    "start": "npm run start:prod",
     "start:dev": "cross-env NODE_ENV=development node --watch-path=./src ./src/main.js",
-    "start:prod": "cross-env NODE_ENV=production node --watch ./src/main.js",
+    "start:prod": "cross-env NODE_ENV=production node ./src/main.js",
     "frontend:dev": "npm --prefix frontend run dev",
     "frontend:build": "npm --prefix frontend run build"
   },
