@@ -1,12 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 const tokenStore = 'spy-app.accessToken'
-const legacyTokenStore = 'saraha.accessToken'
-const storedToken = localStorage.getItem(tokenStore) || localStorage.getItem(legacyTokenStore) || ''
-if (storedToken && !localStorage.getItem(tokenStore)) {
-  localStorage.setItem(tokenStore, storedToken)
-  localStorage.removeItem(legacyTokenStore)
-}
+const storedToken = localStorage.getItem(tokenStore) || ''
 const sections = [
   ['home', 'Overview', '⌂'],
   ['inbox', 'Messages', '✉'],
