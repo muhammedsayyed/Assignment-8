@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-const tokenStore = 'saraha.accessToken'
+const tokenStore = 'spy-app.accessToken'
+const legacyTokenStore = 'saraha.accessToken'
+const storedToken = localStorage.getItem(tokenStore) || localStorage.getItem(legacyTokenStore) || ''
+if (storedToken && !localStorage.getItem(tokenStore)) {
+  localStorage.setItem(tokenStore, storedToken)
+  localStorage.removeItem(legacyTokenStore)
+}
 const sections = [
   ['home', 'Overview', '⌂'],
   ['inbox', 'Messages', '✉'],
@@ -12,7 +18,7 @@ const dateLabel = value => value ? new Date(value).toLocaleString() : ''
 const assetUrl = path => `/assets/${String(path || '').replace(/^assets\//, '')}`
 
 function App() {
-  const [token, setToken] = useState(() => localStorage.getItem(tokenStore) || '')
+  const [token, setToken] = useState(() => storedToken)
   const [profile, setProfile] = useState(null)
   const [page, setPage] = useState('home')
   const [authMode, setAuthMode] = useState('login')
@@ -79,7 +85,7 @@ function App() {
 
   return <div className="app-shell">
     <aside className="sidebar">
-      <a className="brand" href="/app/"><span className="brand-mark">s.</span><span>Saraha <i>Studio</i></span></a>
+      <a className="brand" href="/app/"><span className="brand-mark">S</span><span>Spy App</span></a>
       <div className="sidebar-label">YOUR SPACE</div>
       <nav className="side-nav" aria-label="Main navigation">
         {sections.map(([id, label, icon]) => <button key={id} className={page === id ? 'nav-link selected' : 'nav-link'} onClick={() => setPage(id)}><span className="nav-icon">{icon}</span>{label}</button>)}
@@ -134,7 +140,7 @@ function AuthScreen({ mode, setMode, api, busy, perform, notify, acceptToken, to
     notify('A new code was requested. Check your inbox or the backend terminal in development.')
   })
   return <main className="auth-page">
-    <section className="auth-story"><a className="brand" href="/app/"><span className="brand-mark">s.</span><span>Saraha <i>Studio</i></span></a><div className="story-copy"><p className="overline">A LITTLE MORE HUMAN</p><h1>Some things are easier when you can just say them.</h1><p>A private corner for thoughtful notes, honest replies, and conversations that happen on your terms.</p></div><div className="story-footer"><span>01 — PRIVATE NOTES</span><span>02 — REAL CONNECTION</span></div><div className="story-orbit orbit-one"/><div className="story-orbit orbit-two"/></section>
+    <section className="auth-story"><a className="brand" href="/app/"><span className="brand-mark">S</span><span>Spy App</span></a><div className="story-copy"><p className="overline">A LITTLE MORE HUMAN</p><h1>Some things are easier when you can just say them.</h1><p>A private corner for thoughtful notes, honest replies, and conversations that happen on your terms.</p></div><div className="story-footer"><span>01 — PRIVATE NOTES</span><span>02 — REAL CONNECTION</span></div><div className="story-orbit orbit-one"/><div className="story-orbit orbit-two"/></section>
     <section className="auth-panel"><div className="auth-card"><p className="overline">YOUR SPACE IS WAITING</p><h2>{titles[mode]}</h2><p className="muted auth-intro">{mode === 'signup' ? 'Create your account and start with a clean slate.' : mode === 'verify' ? 'Enter the email address and code we sent you.' : 'Sign in to see your messages and conversations.'}</p>
       <form className="form-stack" onSubmit={submit}>
         {mode === 'login' && <><Field label="Email" name="email" type="email" required /><Field label="Password" name="password" type="password" required /><button className="button-link align-right" type="button" onClick={() => { setResetRequested(false); setMode('forgot') }}>Forgot password?</button></>}
@@ -144,7 +150,7 @@ function AuthScreen({ mode, setMode, api, busy, perform, notify, acceptToken, to
         {mode === 'forgot' && <><Field label="Email" name="email" type="email" required />{resetRequested && <><Field label="Reset code" name="otp" inputMode="numeric" required /><Field label="New password" name="password" type="password" minLength="8" required /><Field label="Confirm password" name="confirmPassword" type="password" minLength="8" required /></>}</>}
         <button className="button primary wide" disabled={busy}>{busy ? 'Please wait…' : mode === 'login' ? 'Sign in' : mode === 'signup' ? 'Create account' : mode === 'verify' ? 'Verify email' : mode === 'confirm-login' ? 'Finish sign in' : resetRequested ? 'Change password' : 'Send reset code'}<span>↗</span></button>
       </form>
-      <div className="auth-switch">{mode === 'login' ? <>New to Saraha? <button onClick={() => setMode('signup')}>Create an account</button></> : <><button onClick={() => { setResetRequested(false); setMode('login') }}>← Back to sign in</button>{mode === 'signup' && <> <span>·</span> Already registered? <button onClick={() => setMode('login')}>Sign in</button></>}</>}</div>
+      <div className="auth-switch">{mode === 'login' ? <>New to Spy App? <button onClick={() => setMode('signup')}>Create an account</button></> : <><button onClick={() => { setResetRequested(false); setMode('login') }}>← Back to sign in</button>{mode === 'signup' && <> <span>·</span> Already registered? <button onClick={() => setMode('login')}>Sign in</button></>}</>}</div>
     </div><p className="auth-legal">PRIVATE BY DEFAULT <span>•</span> MADE FOR GOOD WORDS</p>{toast && <div className="toast" role="alert">{toast}</div>}</section>
   </main>
 }
@@ -159,7 +165,7 @@ function PublicMessage({ api, busy, perform, notify, toast }) {
     const body = new FormData(event.currentTarget); body.set('receiver', receiver)
     perform(async () => { await api('/message', { method: 'POST', body }); setSent(true); notify('Your note was delivered.') })
   }
-  return <main className="public-page"><div className="public-top"><a className="brand" href="/app/"><span className="brand-mark">s.</span><span>Saraha <i>Studio</i></span></a><span className="public-badge">✳ PRIVATE NOTE</span></div><section className="public-card"><p className="overline">A NOTE WITHOUT A NAME</p><h1>{sent ? 'Your words are on their way.' : 'Leave a thoughtful note.'}</h1><p className="muted">{sent ? 'Thanks for taking a moment to share something kind.' : 'Write what you mean. Your identity stays private.'}</p>{!sent && <form className="form-stack public-form" onSubmit={submit}><label className="field"><span>Your message</span><textarea name="content" rows="6" maxLength="1000" placeholder="Start writing here…" required /></label><label className="field"><span>Images, if you like <small>(up to 3)</small></span><input type="file" name="attachments" accept="image/jpeg,image/png,image/gif" multiple /></label><button className="button primary wide" disabled={busy}>Send privately <span>↗</span></button></form>}</section><p className="public-foot">SAY IT WITH CARE <span>✳</span> KEEP IT HUMAN</p>{toast && <div className="toast" role="alert">{toast}</div>}</main>
+  return <main className="public-page"><div className="public-top"><a className="brand" href="/app/"><span className="brand-mark">S</span><span>Spy App</span></a><span className="public-badge">✳ PRIVATE NOTE</span></div><section className="public-card"><p className="overline">A NOTE WITHOUT A NAME</p><h1>{sent ? 'Your words are on their way.' : 'Leave a thoughtful note.'}</h1><p className="muted">{sent ? 'Thanks for taking a moment to share something kind.' : 'Write what you mean. Your identity stays private.'}</p>{!sent && <form className="form-stack public-form" onSubmit={submit}><label className="field"><span>Your message</span><textarea name="content" rows="6" maxLength="1000" placeholder="Start writing here…" required /></label><label className="field"><span>Images, if you like <small>(up to 3)</small></span><input type="file" name="attachments" accept="image/jpeg,image/png,image/gif" multiple /></label><button className="button primary wide" disabled={busy}>Send privately <span>↗</span></button></form>}</section><p className="public-foot">SAY IT WITH CARE <span>✳</span> KEEP IT HUMAN</p>{toast && <div className="toast" role="alert">{toast}</div>}</main>
 }
 
 function PageHeading({ eyebrow, title, subtitle, action }) { return <div className="page-heading"><div><p className="overline">{eyebrow}</p><h1>{title}</h1><p className="muted">{subtitle}</p></div>{action}</div> }

@@ -26,4 +26,4 @@ export const WEB_CLIENT_IDS = process.env.WEB_CLIENT_IDS
 
 export const APP_EMAIL = process.env.APP_EMAIL
 export const APP_PASSWORD = process.env.APP_PASSWORD
-export const APP_NAME = process.env.APP_NAME ?? "SarahaApp"
+export const APP_NAME = process.env.APP_NAME ?? "Spy App"
