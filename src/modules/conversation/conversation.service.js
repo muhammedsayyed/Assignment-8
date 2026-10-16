@@ -55,7 +55,7 @@ export const createConversation = async (user, data) => {
 };
 
 export const getConversations = async (user) => {
-    return await find({
+    const conversations = await find({
         model: ConversationModel,
         filter: { participants: user._id },
         options: {
@@ -68,6 +68,17 @@ export const getConversations = async (user) => {
             lean: true
         }
     });
+    const conversationIds = conversations.map(conversation => conversation._id);
+    if (!conversationIds.length) return conversations;
+    const unread = await ConversationMessageModel.aggregate([
+        { $match: { conversation: { $in: conversationIds }, sender: { $ne: user._id }, readBy: { $ne: user._id } } },
+        { $group: { _id: "$conversation", count: { $sum: 1 } } }
+    ]);
+    const unreadByConversation = new Map(unread.map(item => [item._id.toString(), item.count]));
+    return conversations.map(conversation => ({
+        ...conversation,
+        unreadCount: unreadByConversation.get(conversation._id.toString()) || 0
+    }));
 };
 
 export const getConversationById = async (user, conversationId) => {
@@ -95,7 +106,7 @@ export const getConversationById = async (user, conversationId) => {
     return conversation;
 };
 
-export const sendConversationMessage = async (user, conversationId, data) => {
+export const sendConversationMessage = async (user, conversationId, data, files = []) => {
     const conversation = await findById({
         model: ConversationModel,
         id: conversationId
@@ -111,7 +122,9 @@ export const sendConversationMessage = async (user, conversationId, data) => {
     const message = await ConversationMessageModel.create({
         conversation: conversation._id,
         sender: user._id,
-        content: data.content
+        content: data.content || "",
+        attachments: files.map(file => file.finalPath),
+        readBy: [user._id]
     });
 
     // Touch conversation updated time
@@ -140,7 +153,7 @@ export const getConversationMessages = async (user, conversationId) => {
         throw ForbiddenException("Only participants can view messages from this conversation");
     }
 
-    return await find({
+    const messages = await find({
         model: ConversationMessageModel,
         filter: { conversation: conversation._id },
         options: {
@@ -149,6 +162,24 @@ export const getConversationMessages = async (user, conversationId) => {
             lean: true
         }
     });
+    return messages.map(message => ({
+        ...message,
+        isRead: message.sender?._id?.toString() === user._id.toString()
+            || message.sender?.toString() === user._id.toString()
+            || (message.readBy || []).some(reader => reader.toString() === user._id.toString())
+    }));
+};
+
+export const markConversationRead = async (user, conversationId) => {
+    const conversation = await findById({ model: ConversationModel, id: conversationId });
+    if (!conversation) throw NotfoundException("Conversation not found");
+    const isParticipant = conversation.participants.some(participant => participant.toString() === user._id.toString());
+    if (!isParticipant) throw ForbiddenException("Only participants can read this conversation");
+    const result = await ConversationMessageModel.updateMany(
+        { conversation: conversation._id, sender: { $ne: user._id }, readBy: { $ne: user._id } },
+        { $addToSet: { readBy: user._id } }
+    );
+    return { markedRead: result.modifiedCount || 0 };
 };
 
 export const deleteConversation = async (user, conversationId) => {

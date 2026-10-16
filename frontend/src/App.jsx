@@ -33,10 +33,11 @@ async function copyText(value) {
 function App() {
   const [token, setToken] = useState(() => storedToken)
   const [profile, setProfile] = useState(null)
-  const [page, setPage] = useState('home')
+  const [page, setPage] = useState(() => ['home', 'inbox', 'requests', 'chats', 'profile'].includes(sessionStorage.getItem('spy-app.page')) ? sessionStorage.getItem('spy-app.page') : 'home')
   const [authMode, setAuthMode] = useState('login')
   const [inboxType, setInboxType] = useState('received')
-  const [activeChat, setActiveChat] = useState('')
+  const [activeChat, setActiveChat] = useState(() => sessionStorage.getItem('spy-app.activeChat') || '')
+  const [unreadChats, setUnreadChats] = useState(0)
   const [toast, setToast] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -76,6 +77,25 @@ function App() {
 
   useEffect(() => { refreshProfile() }, [refreshProfile])
 
+  useEffect(() => { sessionStorage.setItem('spy-app.page', page) }, [page])
+  useEffect(() => {
+    if (activeChat) sessionStorage.setItem('spy-app.activeChat', activeChat)
+    else sessionStorage.removeItem('spy-app.activeChat')
+  }, [activeChat])
+  useEffect(() => {
+    if (!token || !profile) { setUnreadChats(0); return }
+    let live = true
+    const updateUnread = async () => {
+      try {
+        const conversations = await api('/conversation')
+        if (live) setUnreadChats((conversations || []).reduce((total, item) => total + (item.unreadCount || 0), 0))
+      } catch {}
+    }
+    updateUnread()
+    const timer = window.setInterval(updateUnread, 5000)
+    return () => { live = false; window.clearInterval(timer) }
+  }, [api, profile, token])
+
   const perform = async operation => {
     setBusy(true)
     try { await operation() }
@@ -86,6 +106,7 @@ function App() {
   const logout = () => perform(async () => {
     try { await api('/user/logout', { method: 'POST', body: { action: 'DEVICE' } }) } catch {}
     localStorage.removeItem(tokenStore)
+    sessionStorage.removeItem('spy-app.page'); sessionStorage.removeItem('spy-app.activeChat')
     setToken(''); setProfile(null); setPage('home'); setAuthMode('login')
   })
 
@@ -101,7 +122,7 @@ function App() {
       <a className="brand" href="/app/"><span className="brand-mark">S</span><span>Spy App</span></a>
       <div className="sidebar-label">YOUR SPACE</div>
       <nav className="side-nav" aria-label="Main navigation">
-        {sections.map(([id, label, icon]) => <button key={id} className={page === id ? 'nav-link selected' : 'nav-link'} onClick={() => setPage(id)}><span className="nav-icon">{icon}</span>{label}</button>)}
+        {sections.map(([id, label, icon]) => <button key={id} className={page === id ? 'nav-link selected' : 'nav-link'} onClick={() => setPage(id)}><span className="nav-icon">{icon}</span>{label}{id === 'chats' && unreadChats > 0 && <span className="nav-unread-badge">{unreadChats > 99 ? '99+' : unreadChats}</span>}</button>)}
       </nav>
       <div className="sidebar-bottom"><div className="privacy-mark">✳</div><strong>A softer place to speak.</strong><p>Your messages stay in your space.</p></div>
     </aside>
@@ -236,12 +257,35 @@ function Requests({ api, notify, perform, onChat }) {
 function Chats({ api, profile, activeChat, setActiveChat, notify, perform }) {
   const [chats, setChats] = useState([]); const [messages, setMessages] = useState([])
   const loadChats = useCallback(async () => { try { setChats(await api('/conversation') || []) } catch (error) { notify(error.message) } }, [api, notify])
-  const loadMessages = useCallback(async () => { if (!activeChat) return; try { setMessages(await api(`/conversation/${activeChat}/messages`) || []) } catch (error) { notify(error.message); setActiveChat('') } }, [api, activeChat, notify, setActiveChat])
-  useEffect(() => { loadChats() }, [loadChats]); useEffect(() => { loadMessages() }, [loadMessages])
+  const loadMessages = useCallback(async () => {
+    if (!activeChat) { setMessages([]); return }
+    try {
+      const latestMessages = await api(`/conversation/${activeChat}/messages`) || []
+      setMessages(latestMessages)
+      if (latestMessages.some(message => message.sender?._id !== profile._id && !message.isRead)) {
+        await api(`/conversation/${activeChat}/read`, { method: 'PATCH' })
+        setChats(current => current.map(chat => chat._id === activeChat ? { ...chat, unreadCount: 0 } : chat))
+      }
+    } catch (error) { notify(error.message) }
+  }, [api, activeChat, notify, profile._id])
+  useEffect(() => { loadChats() }, [loadChats])
+  useEffect(() => {
+    loadMessages()
+    const messageTimer = window.setInterval(loadMessages, 1000)
+    const chatTimer = window.setInterval(loadChats, 5000)
+    return () => { window.clearInterval(messageTimer); window.clearInterval(chatTimer) }
+  }, [loadChats, loadMessages])
   const current = chats.find(item => item._id === activeChat)
-  const send = event => { event.preventDefault(); const form = event.currentTarget; const body = Object.fromEntries(new FormData(form)); perform(async () => { await api(`/conversation/${activeChat}/messages`, { method: 'POST', body }); form.reset(); await loadMessages() }) }
+  const send = event => {
+    event.preventDefault()
+    const form = event.currentTarget
+    const body = new FormData(form)
+    const imageInput = form.elements.attachments
+    if (!body.get('content')?.trim() && !imageInput.files.length) { notify('Write a message or choose an image.'); return }
+    perform(async () => { await api(`/conversation/${activeChat}/messages`, { method: 'POST', body }); form.reset(); await loadMessages(); await loadChats() })
+  }
   const remove = () => perform(async () => { if (!window.confirm('Delete this conversation and its messages?')) return; await api(`/conversation/${activeChat}`, { method: 'DELETE' }); setActiveChat(''); notify('Conversation deleted.'); await loadChats() })
-  return <div className="page-content"><PageHeading eyebrow="PRIVATE, BETWEEN YOU" title="Conversations" subtitle="A personal conversation starts after an identity request is accepted."/><Card className="chat-card"><aside className="chat-sidebar"><p className="overline">YOUR CHATS</p>{chats.length ? chats.map(item => { const other = item.participants?.find(p => p._id !== profile._id); return <button key={item._id} className={activeChat === item._id ? 'chat-choice active' : 'chat-choice'} onClick={() => setActiveChat(item._id)}><span className="avatar small-avatar">{other?.username?.slice(0, 1)?.toUpperCase() || 'S'}</span><span><strong>{other?.username || 'Private conversation'}</strong><small>Open conversation</small></span><b>›</b></button> }) : <Empty>No conversations yet.</Empty>}</aside><section className="chat-pane">{current ? <><div className="chat-header"><div><p className="overline">IN A QUIET CORNER</p><h2>{current.participants?.filter(p => p._id !== profile._id).map(p => p.username).join(', ') || 'Conversation'}</h2></div><button className="button quiet small" onClick={remove}>Delete chat</button></div><div className="chat-messages">{messages.length ? messages.map(message => <div className={message.sender?._id === profile._id ? 'chat-bubble mine' : 'chat-bubble'} key={message._id}><p>{message.content}</p><small>{message.sender?.username || 'Member'} · {dateLabel(message.createdAt)}</small></div>) : <Empty>Start with a kind word.</Empty>}</div><form className="chat-compose" onSubmit={send}><input name="content" placeholder="Write a reply…" maxLength="1000" required/><button className="button primary">Send ↗</button></form></> : <div className="chat-placeholder"><span>◌</span><h2>Make space for a conversation.</h2><p>Choose a chat from the list to read and reply.</p></div>}</section></Card></div>
+  return <div className="page-content"><PageHeading eyebrow="PRIVATE, BETWEEN YOU" title="Conversations" subtitle="New messages appear automatically while you are here."/><Card className="chat-card"><aside className="chat-sidebar"><p className="overline">YOUR CHATS</p>{chats.length ? chats.map(item => { const other = item.participants?.find(p => p._id !== profile._id); return <button key={item._id} className={activeChat === item._id ? 'chat-choice active' : 'chat-choice'} onClick={() => setActiveChat(item._id)}><span className="avatar small-avatar">{other?.username?.slice(0, 1)?.toUpperCase() || 'S'}</span><span><strong>{other?.username || 'Private conversation'}</strong><small>{item.unreadCount ? `${item.unreadCount} unread` : 'Open conversation'}</small></span>{item.unreadCount > 0 ? <b className="chat-unread-badge">{item.unreadCount > 99 ? '99+' : item.unreadCount}</b> : <b>›</b>}</button> }) : <Empty>No conversations yet.</Empty>}</aside><section className="chat-pane">{current ? <><div className="chat-header"><div><p className="overline">IN A QUIET CORNER</p><h2>{current.participants?.filter(p => p._id !== profile._id).map(p => p.username).join(', ') || 'Conversation'}</h2></div><button className="button quiet small" onClick={remove}>Delete chat</button></div><div className="chat-messages">{messages.length ? messages.map(message => <div className={message.sender?._id === profile._id ? 'chat-bubble mine' : 'chat-bubble'} key={message._id}>{message.content && <p>{message.content}</p>}{message.attachments?.length > 0 && <div className="attachment-row chat-attachments">{message.attachments.map((image, index) => <a key={image + index} href={assetUrl(image)} target="_blank" rel="noreferrer"><img src={assetUrl(image)} alt="Chat attachment" /></a>)}</div>}<small>{message.sender?.username || 'Member'} · {dateLabel(message.createdAt)}</small></div>) : <Empty>Start with a kind word.</Empty>}</div><form className="chat-compose" onSubmit={send}><input name="content" placeholder="Write a reply…" maxLength="1000"/><label className="chat-image-button" title="Attach up to 3 images">＋<input type="file" name="attachments" accept="image/jpeg,image/png,image/gif" multiple /></label><button className="button primary">Send ↗</button></form><small className="chat-upload-hint">Up to 3 images, 5 MB each</small></> : <div className="chat-placeholder"><span>◌</span><h2>Make space for a conversation.</h2><p>Choose a chat from the list to read and reply.</p></div>}</section></Card></div>
 }
 
 function Profile({ api, profile, setProfile, notify, perform }) {

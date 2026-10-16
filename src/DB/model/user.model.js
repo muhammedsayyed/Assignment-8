@@ -115,7 +115,9 @@ export const ConversationModel = mongoose.models.Conversation || mongoose.model(
 const conversationMessageSchema = new mongoose.Schema({
     conversation: { type: mongoose.Schema.Types.ObjectId, ref: "Conversation", required: true },
     sender: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    content: { type: String, required: true, trim: true, minLength: 1, maxLength: 1000 }
+    content: { type: String, trim: true, maxLength: 1000, default: "" },
+    attachments: [{ type: String }],
+    readBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }]
 }, { timestamps: true });
 
 conversationMessageSchema.index({ conversation: 1, createdAt: 1 });

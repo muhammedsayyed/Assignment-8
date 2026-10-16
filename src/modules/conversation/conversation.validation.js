@@ -13,5 +13,5 @@ export const conversationId = z.strictObject({
 });
 
 export const sendMessage = z.strictObject({
-    content: z.string().trim().min(1).max(1000)
+    content: z.string().trim().max(1000).optional().default("")
 });
