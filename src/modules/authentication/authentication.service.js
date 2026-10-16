@@ -8,7 +8,7 @@ import { OAuth2Client } from 'google-auth-library';
 import { ProviderEnum, TwoStepVerificationEnum } from "../../common/enum/user.enum.js";
 import { EmailSubjectEnum } from "../../common/enum/email.enum.js";
 import { LogoutEnum } from "../../common/enum/security.enum.js";
-import { APP_EMAIL, APP_PASSWORD, WEB_CLIENT_IDS } from "../../config.js";
+import { APP_EMAIL, APP_NAME, APP_PASSWORD, WEB_CLIENT_IDS } from "../../config.js";
 import { sendEmail } from "../../common/utils/email/send.email.js";
 import { verifyEmailTemplate } from "../../common/utils/email/email.template.js";
 import { createOtp } from "../../common/utils/otp.js";
@@ -17,6 +17,12 @@ import { userEmailKey, userEmailTrailsKey } from "../../common/utils/email/send.
 import { revokeToken } from "../../common/utils/cache.utils.js";
 
 const client = new OAuth2Client();
+
+const assertEmailDeliveryConfigured = () => {
+    if (process.env.NODE_ENV !== "development" && (!APP_EMAIL || !APP_PASSWORD)) {
+        throw BadException("Email delivery is not configured on the server. Set APP_EMAIL and APP_PASSWORD before creating accounts or sending codes.");
+    }
+};
 
 // verify google id token with google oauth client
 async function verifyGoogleAccount(idToken) {
@@ -81,6 +87,8 @@ const sendEmailOtp = async ({ email, subject, expiresIn = 120, maxTrails = 3, bl
         return;
     }
 
+    assertEmailDeliveryConfigured();
+
     try {
         await sendEmail({
             to: email,
@@ -89,7 +97,7 @@ const sendEmailOtp = async ({ email, subject, expiresIn = 120, maxTrails = 3, bl
         });
     } catch (error) {
         console.error("Verification email delivery failed:", error);
-        throw BadException("Could not send the verification email. Check APP_EMAIL and APP_PASSWORD in .env.development");
+        throw BadException("Could not send the verification email. Check APP_EMAIL and APP_PASSWORD in the server environment.");
     }
 
     await set({
@@ -110,6 +118,8 @@ export const signup = async ({ email, password, phone, username }) => {
         options: { select: "email" }
     });
     if (duplicatedAccount) throw ConflictException("Email already exists");
+    // Do not leave an unverified account behind if production email delivery is unavailable.
+    assertEmailDeliveryConfigured();
     // hash password and encrypt phone before saving
     const account = await createOne({
         model: UserModel,
@@ -158,9 +168,12 @@ export const resendConfirmEmail = async ({ email }) => {
 export const requestForgotPassword = async ({ email }) => {
     const account = await findOne({
         model: UserModel,
-        filter: { email, provider: ProviderEnum.SYSTEM, confirmEmail: { $exists: true } }
+        filter: { email, provider: ProviderEnum.SYSTEM }
     });
     if (!account) throw NotfoundException("Invalid account");
+    if (!account.confirmEmail) {
+        throw BadException("Email is not verified. Request a verification code and verify the email first.");
+    }
     await sendEmailOtp({ email, subject: EmailSubjectEnum.FORGOT_PASSWORD });
     return { message: "Reset password code sent to your email" };
 };

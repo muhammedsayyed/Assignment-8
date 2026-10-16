@@ -18,7 +18,8 @@ app.use(cors(), express.json(), requestMiddleware)
 app.use('/assets', express.static(resolve('assets')))
 app.use('/app', express.static(resolve('frontend/dist')))
 
-app.get('/', (req, res) => res.status(200).json({ message: 'Hello World!' }))
+app.get('/', (req, res) => res.redirect('/app/'))
+app.get('/health', (req, res) => res.status(200).json({ status: 'ok' }))
 
 // app routes
 app.use("/auth", authenticationController)

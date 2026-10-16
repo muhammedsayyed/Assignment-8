@@ -101,7 +101,7 @@ function App() {
 
 function AuthScreen({ mode, setMode, api, busy, perform, notify, acceptToken, toast }) {
   const [resetRequested, setResetRequested] = useState(false)
-  const titles = { login: 'Welcome back', signup: 'Make room for honesty', verify: 'Check your inbox', 'confirm-login': 'One more step', forgot: 'Reset your password' }
+  const titles = { login: 'Welcome back', signup: 'Make room for honesty', resend: 'Verify your email', verify: 'Check your inbox', 'confirm-login': 'One more step', forgot: 'Reset your password' }
   const submit = event => {
     event.preventDefault()
     const form = event.currentTarget
@@ -114,6 +114,9 @@ function AuthScreen({ mode, setMode, api, busy, perform, notify, acceptToken, to
         acceptToken(result.access_token)
       } else if (mode === 'signup') {
         await api('/auth/signup', { method: 'POST', body: data })
+        sessionStorage.setItem('signup.email', data.email); setMode('verify'); notify('Verification code sent. Check your email.')
+      } else if (mode === 'resend') {
+        await api('/auth/resend-confirm-email', { method: 'PATCH', body: { email: data.email } })
         sessionStorage.setItem('signup.email', data.email); setMode('verify'); notify('Verification code sent. Check your email.')
       } else if (mode === 'verify') {
         await api('/auth/confirm-email', { method: 'PATCH', body: data }); setMode('login'); notify('Email verified. You can sign in.')
@@ -136,16 +139,17 @@ function AuthScreen({ mode, setMode, api, busy, perform, notify, acceptToken, to
   })
   return <main className="auth-page">
     <section className="auth-story"><a className="brand" href="/app/"><span className="brand-mark">S</span><span>Spy App</span></a><div className="story-copy"><p className="overline">A LITTLE MORE HUMAN</p><h1>Some things are easier when you can just say them.</h1><p>A private corner for thoughtful notes, honest replies, and conversations that happen on your terms.</p></div><div className="story-footer"><span>01 — PRIVATE NOTES</span><span>02 — REAL CONNECTION</span></div><div className="story-orbit orbit-one"/><div className="story-orbit orbit-two"/></section>
-    <section className="auth-panel"><div className="auth-card"><p className="overline">YOUR SPACE IS WAITING</p><h2>{titles[mode]}</h2><p className="muted auth-intro">{mode === 'signup' ? 'Create your account and start with a clean slate.' : mode === 'verify' ? 'Enter the email address and code we sent you.' : 'Sign in to see your messages and conversations.'}</p>
+    <section className="auth-panel"><div className="auth-card"><p className="overline">YOUR SPACE IS WAITING</p><h2>{titles[mode]}</h2><p className="muted auth-intro">{mode === 'signup' ? 'Create your account and start with a clean slate.' : mode === 'resend' ? 'We will send a new verification code to your email.' : mode === 'verify' ? 'Enter the email address and code we sent you.' : 'Sign in to see your messages and conversations.'}</p>
       <form className="form-stack" onSubmit={submit}>
         {mode === 'login' && <><Field label="Email" name="email" type="email" required /><Field label="Password" name="password" type="password" required /><button className="button-link align-right" type="button" onClick={() => { setResetRequested(false); setMode('forgot') }}>Forgot password?</button></>}
         {mode === 'signup' && <><Field label="Your name" name="username" placeholder="First and last name" minLength="5" required /><Field label="Email" name="email" type="email" required /><Field label="Phone" name="phone" type="tel" placeholder="+201000000000" required /><Field label="Password" name="password" type="password" minLength="8" required /><Field label="Confirm password" name="confirmPassword" type="password" minLength="8" required /></>}
+        {mode === 'resend' && <Field label="Email" name="email" type="email" required />}
         {mode === 'verify' && <><Field label="Email" name="email" type="email" defaultValue={sessionStorage.getItem('signup.email') || ''} required /><Field label="Verification code" name="otp" inputMode="numeric" required /><button className="button-link align-right" type="button" disabled={busy} onClick={resendVerification}>Resend verification code</button></>}
         {mode === 'confirm-login' && <><Field label="Email" name="email" type="email" defaultValue={sessionStorage.getItem('login.email') || ''} required /><Field label="Verification code" name="otp" inputMode="numeric" required /></>}
         {mode === 'forgot' && <><Field label="Email" name="email" type="email" required />{resetRequested && <><Field label="Reset code" name="otp" inputMode="numeric" required /><Field label="New password" name="password" type="password" minLength="8" required /><Field label="Confirm password" name="confirmPassword" type="password" minLength="8" required /></>}</>}
-        <button className="button primary wide" disabled={busy}>{busy ? 'Please wait…' : mode === 'login' ? 'Sign in' : mode === 'signup' ? 'Create account' : mode === 'verify' ? 'Verify email' : mode === 'confirm-login' ? 'Finish sign in' : resetRequested ? 'Change password' : 'Send reset code'}<span>↗</span></button>
+        <button className="button primary wide" disabled={busy}>{busy ? 'Please wait…' : mode === 'login' ? 'Sign in' : mode === 'signup' ? 'Create account' : mode === 'resend' ? 'Send verification code' : mode === 'verify' ? 'Verify email' : mode === 'confirm-login' ? 'Finish sign in' : resetRequested ? 'Change password' : 'Send reset code'}<span>↗</span></button>
       </form>
-      <div className="auth-switch">{mode === 'login' ? <>New to Spy App? <button onClick={() => setMode('signup')}>Create an account</button></> : <><button onClick={() => { setResetRequested(false); setMode('login') }}>← Back to sign in</button>{mode === 'signup' && <> <span>·</span> Already registered? <button onClick={() => setMode('login')}>Sign in</button></>}</>}</div>
+      <div className="auth-switch">{mode === 'login' ? <>New to Spy App? <button onClick={() => setMode('signup')}>Create an account</button><br /><button onClick={() => setMode('resend')}>Resend verification code</button></> : <><button onClick={() => { setResetRequested(false); setMode('login') }}>← Back to sign in</button>{mode === 'signup' && <> <span>·</span> Already registered? <button onClick={() => setMode('login')}>Sign in</button></>}</>}</div>
     </div><p className="auth-legal">PRIVATE BY DEFAULT <span>•</span> MADE FOR GOOD WORDS</p>{toast && <div className="toast" role="alert">{toast}</div>}</section>
   </main>
 }
