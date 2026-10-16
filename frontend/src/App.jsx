@@ -12,6 +12,24 @@ const sections = [
 const dateLabel = value => value ? new Date(value).toLocaleString() : ''
 const assetUrl = path => `/assets/${String(path || '').replace(/^assets\//, '')}`
 
+async function copyText(value) {
+  if (navigator.clipboard?.writeText && window.isSecureContext) {
+    await navigator.clipboard.writeText(value)
+    return
+  }
+
+  const field = document.createElement('textarea')
+  field.value = value
+  field.setAttribute('readonly', '')
+  field.style.position = 'fixed'
+  field.style.opacity = '0'
+  document.body.appendChild(field)
+  field.select()
+  const copied = document.execCommand('copy')
+  field.remove()
+  if (!copied) throw new Error('Could not copy the link. Select and copy the displayed URL instead.')
+}
+
 function App() {
   const [token, setToken] = useState(() => storedToken)
   const [profile, setProfile] = useState(null)
@@ -179,10 +197,10 @@ function Dashboard({ api, profile, navigate, notify, perform }) {
   }, [api, notify])
   useEffect(() => { load() }, [load])
   const shareLink = `${location.origin}/app/?to=${encodeURIComponent(profile._id || '')}`
-  return <div className="page-content"><PageHeading eyebrow="YOUR PRIVATE SPACE" title={`Hello, ${profile.username?.split(' ')[0] || 'friend'}.`} subtitle="A quick look at the words and connections waiting for you." action={<button className="button primary" onClick={() => perform(async () => { await navigator.clipboard.writeText(shareLink); notify('Your private link is copied.') })}>Copy my link <span>↗</span></button>} />
+  return <div className="page-content"><PageHeading eyebrow="YOUR PRIVATE SPACE" title={`Hello, ${profile.username?.split(' ')[0] || 'friend'}.`} subtitle="A quick look at the words and connections waiting for you." action={<button className="button primary" onClick={() => perform(async () => { await copyText(shareLink); notify('Your private link is copied.') })}>Copy my link <span>↗</span></button>} />
     <div className="stats-row"><Stat label="Notes received" number={messages.length} accent="✉"/><Stat label="Waiting to be read" number={messages.filter(item => !item.isRead).length} accent="◉"/><Stat label="Conversations" number={chats.length} accent="◌"/></div>
     <div className="dashboard-grid"><Card className="recent-card"><div className="card-heading"><div><p className="overline">FRESH FROM YOUR INBOX</p><h2>Recent notes</h2></div><button className="button subtle" onClick={() => navigate('inbox')}>Open messages ↗</button></div>{messages.length ? <div className="message-list">{messages.slice(0, 3).map(item => <MessageItem key={item._id} item={item} api={api} notify={notify} perform={perform} onChange={load}/>)}</div> : <Empty>Your first note will find its way here.</Empty>}</Card>
-      <Card className="share-card"><p className="overline">PASS IT ALONG</p><div className="share-art">✳</div><h2>Your link, your space.</h2><p className="muted">Share this link and invite someone to leave a private note.</p><div className="share-url">{shareLink}</div><button className="button outline wide" onClick={() => perform(async () => { await navigator.clipboard.writeText(shareLink); notify('Your private link is copied.') })}>Copy link</button></Card>
+      <Card className="share-card"><p className="overline">PASS IT ALONG</p><div className="share-art">✳</div><h2>Your link, your space.</h2><p className="muted">Share this link and invite someone to leave a private note.</p><div className="share-url">{shareLink}</div><button className="button outline wide" onClick={() => perform(async () => { await copyText(shareLink); notify('Your private link is copied.') })}>Copy link</button></Card>
       <Card className="request-preview"><div className="card-heading"><div><p className="overline">YOUR CALL</p><h2>Identity requests</h2></div><button className="button subtle" onClick={() => navigate('requests')}>See all ↗</button></div>{requests.filter(r => r.status === 0).length ? requests.filter(r => r.status === 0).slice(0, 2).map(item => <RequestItem key={item._id} item={item} api={api} notify={notify} perform={perform} onDone={load} />) : <Empty>No requests need your attention.</Empty>}</Card>
     </div>
   </div>
